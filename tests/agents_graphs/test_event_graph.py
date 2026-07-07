@@ -19,6 +19,7 @@ def make_graph(executors=None, restriction_llm=None, final_llm=None):
 
 
 def test_get_end_condition_routes_to_executor_until_rows_empty():
+    """When rows remain to generate, then the event graph routes to the executor; otherwise it finalizes."""
     condition = make_graph().get_end_condition()
 
     assert condition({"rows_to_generate": [{"table_name": "users", "row": "{}"}]}) == "executor"
@@ -26,6 +27,7 @@ def test_get_end_condition_routes_to_executor_until_rows_empty():
 
 
 def test_restriction_node_builds_cur_restrictions():
+    """When the restriction node runs, then it computes row-level constraints from the current state."""
     restriction_llm = Mock()
     restriction_llm.invoke.return_value = SimpleNamespace(content="filter this row")
     graph = make_graph(restriction_llm=restriction_llm)
@@ -46,6 +48,7 @@ def test_restriction_node_builds_cur_restrictions():
 
 
 def test_executor_node_updates_dataset_and_variables():
+    """When the executor processes a row, then it updates the dataset, generated rows, and variable definitions."""
     executor = Mock()
     executor.system_prompt = SimpleNamespace(format_messages=Mock(return_value=[SimpleNamespace(content="system")]))
     executor.invoke.return_value = {
@@ -75,6 +78,7 @@ def test_executor_node_updates_dataset_and_variables():
 
 
 def test_final_node_formats_rows_and_response():
+    """When the final node runs, then it formats dataset rows and returns the normalized scenario."""
     final_llm = Mock()
     final_llm.invoke.return_value = final_llm
     final_llm.dict.return_value = {"scenario": "normalized scenario"}

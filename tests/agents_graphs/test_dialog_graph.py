@@ -24,12 +24,14 @@ def make_dialog(user_response, chatbot_response, critique_response, memory=None,
 
 
 def test_user_end_condition_routes_to_critique_on_stop_signal():
+    """When the user stop signal is present, then the dialog routes to critique instead of the chatbot."""
     dialog = make_dialog({}, {}, {})
     assert dialog.user_end_condition({"stop_signal": "###STOP"}) == "end_critique"
     assert dialog.user_end_condition({"stop_signal": ""}) == "chatbot"
 
 
 def test_critique_end_condition_uses_intermediate_processing():
+    """When intermediate processing ends the dialog, then critique routes to END; otherwise it loops back to user."""
     dialog = make_dialog({}, {}, {}, intermediate_processing=lambda state: "END")
     assert dialog.critique_end_condition({"stop_signal": "###STOP"}) == END
 
@@ -38,6 +40,7 @@ def test_critique_end_condition_uses_intermediate_processing():
 
 
 def test_set_user_message_without_feedback():
+    """When there is no critique feedback, then the user prompt contains only the conversation summary."""
     messages = set_user_message(
         {
             "chatbot_messages": [HumanMessage(content="hello"), AIMessage(content="world")],
@@ -53,6 +56,7 @@ def test_set_user_message_without_feedback():
 
 
 def test_set_user_message_with_feedback_adds_retry_prompt():
+    """When critique feedback exists, then the retry prompt includes the prior response and feedback."""
     messages = set_user_message(
         {
             "chatbot_messages": [HumanMessage(content="hello"), AIMessage(content="world")],
@@ -70,6 +74,7 @@ def test_set_user_message_with_feedback_adds_retry_prompt():
 
 
 def test_simulated_user_node_records_stop_signal_and_thoughts():
+    """When the user model returns a stop signal, then the node stores thoughts and stop state in memory."""
     memory = SimpleNamespace(thoughts=[], dialog=[], tools=[])
     memory.insert_thought = Mock(side_effect=lambda thread_id, thought: memory.thoughts.append((thread_id, thought)))
     memory.insert_dialog = Mock(side_effect=lambda thread_id, role, content: memory.dialog.append((thread_id, role, content)))
@@ -100,6 +105,7 @@ def test_simulated_user_node_records_stop_signal_and_thoughts():
 
 
 def test_chat_bot_node_returns_last_ai_message_and_records_messages():
+    """When the chatbot emits tool and final messages, then the node returns the post-human slice and final answer."""
     chatbot_response = {
         "messages": [
             HumanMessage(content="start"),
@@ -123,6 +129,7 @@ def test_chat_bot_node_returns_last_ai_message_and_records_messages():
 
 
 def test_critique_node_uses_last_user_thought():
+    """When critique runs, then the last user thought is passed into the critique reasoning payload."""
     critique = Mock()
     critique.invoke.return_value = SimpleNamespace(content="CORRECT")
     dialog = make_dialog(user_response={}, chatbot_response={}, critique_response={}, intermediate_processing=lambda state: END)

@@ -14,14 +14,17 @@ def make_impl(planner_output, replanner_output, executor=None):
 
 
 def test_should_end_returns_end_for_empty_plan():
+    """When the plan is empty, then the workflow terminates."""
     assert should_end({"plan": []}) == END
 
 
 def test_should_end_returns_agent_for_non_empty_plan():
+    """When plan steps remain, then the workflow routes back to the agent node."""
     assert should_end({"plan": [{"content": "do something"}]}) == "agent"
 
 
 def test_get_planner_function_maps_plan_shape():
+    """When the planner runs, then its structured output is mapped into graph state."""
     planner_output = Plan(
         steps=[SingleStep(content="step 1", executor="search")],
         final_response="done",
@@ -38,6 +41,7 @@ def test_get_planner_function_maps_plan_shape():
 
 
 def test_get_replanner_function_maps_plan_shape():
+    """When replanning runs, then the returned plan and final response are preserved in graph state."""
     replanner_output = Plan(
         steps=[SingleStep(content="step 2", executor="Response")],
         final_response="final answer",
@@ -55,6 +59,7 @@ def test_get_replanner_function_maps_plan_shape():
 
 
 def test_executor_short_circuits_for_response_step():
+    """When the next step is a direct response, then the executor short-circuits without calling tools."""
     planner_output = Plan(steps=[SingleStep(content="step 1", executor="Response")], final_response="done")
     impl, _, _ = make_impl(planner_output, planner_output)
 
@@ -66,6 +71,7 @@ def test_executor_short_circuits_for_response_step():
 
 
 def test_executor_dispatches_to_named_executor():
+    """When the next step targets a named executor, then the implementation invokes that executor with args."""
     named_executor = Mock()
     named_executor.invoke.return_value = {
         "messages": [Mock(content="intermediate"), Mock(content="final tool result")],
@@ -87,6 +93,7 @@ def test_executor_dispatches_to_named_executor():
 
 
 def test_graph_smoke_path():
+    """When the plan-execute graph runs end to end, then it executes the step and replans to completion."""
     planner_output = Plan(
         steps=[SingleStep(content="look up account", executor="search")],
         final_response="done",
